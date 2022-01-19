@@ -1,0 +1,31 @@
+name: 'NPM Install'
+description: 'Install NPM dependencies and cache the node_modules'
+
+inputs:
+  token:
+    description: 'The github token to authenticate with'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Get npm Cache Directory
+      id: npm-cache-dir
+      shell: bash
+      run: |
+        echo "::set-output name=dir::${PWD}/node_modules"
+    - name: Cache
+      id: npm-cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.npm-cache-dir.outputs.dir }}
+        key: ${{ runner.os }}-node-node_modules-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+    - name: Install
+      if: steps.npm-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        url="https://${{ inputs.token }}@github.com/"
+        git config --global url."${url}".insteadOf ssh://git@github.com/
+        npm ci
